@@ -1,0 +1,260 @@
+openapi: "3.0.3"
+info:
+  title: "3D Phantom API"
+  version: "1.0.0"
+  description: |
+    This is information of 3D virtual salespeson(3dvs) API.
+    ## Words
+    **scenarios**  
+    It's a group of scenarios steps.  
+    Scenario step can have children steps.
+    When a user select one step, the children steps are displayed on the page.  
+
+    **Step type**  
+    scenarios step has type properties.
+    The type contains...  
+    - movie : play selected movie, and go to the next level(get children steps).
+    - call : call live-video calling, and go to the next level(get children steps).
+    - qr : go to the static page which is set in the parameter value, and display qrcode.
+    - selection : go to the next level(get children steps)
+
+    ## Features
+    (For tablet-app)
+      - get scenarios
+      - play movie *just send signal to AWS.
+      - call zoom  *just send signal to AWS.
+      - put user action
+ 
+    (For laptop-app)
+      - check 3D-content *checking signal by api call
+      - get movie  
+      - join zoom meeting
+
+    (For admin-app)
+      - get user action
+
+servers:
+  - url: "https://localhost:{port}"
+    description: "Local dev"
+    variables:
+      port:
+        enum: ["3000", "8000"]
+        default: "3000"
+      version:
+        default: "v1"
+  - url: "https://XXXXXX"
+    description: "Production"
+tags:
+  - name: Scenarios
+    description: ""
+  - name: Users
+    description: ""
+  - name: Contents
+    description: "contents for 3d display"
+
+paths:
+  "/3dvs/scenarios/{scenariosId}/steps/":
+    get:
+      summary: "Get scenaio steps under parent step"
+      description: ""
+      tags:
+        - "Scenarios"
+      deprecated: false
+      parameters:
+        - name: "scenariosId"
+          in: path
+          description: ""
+          required: true
+          schema: { type: integer }
+          example: 1
+        - name: "parentStepId"
+          in: query
+          description: "if there is no value, get all steps of level-1"
+          required: false
+          schema: { type: integer }
+          example: 1      
+      responses:
+        "200":
+          description: "Success"
+        "400":
+          $ref: "#/components/responses/400-badrequest"
+          
+  "/3dvs/user/{playersId}/{stepId}":
+    put:
+      summary: "put the step information user selected. This api is called when user tap the selection"
+      description: ""
+      tags:
+        - "Users"
+      deprecated: false
+      parameters:
+        - name: "playersId"
+          in: path
+          description: ""
+          required: true
+          schema: { type: string }
+          example: "1"
+        - name: "stepId"
+          in: path
+          description: ""
+          required: true
+          schema: { type: integer }
+          example: 1
+      responses:
+        "201":
+          description: "success"
+
+  "/3dvs/contents/{playersId}/check":
+    get:
+      summary: "check that there is a signal to play 3D contents.       "
+      description: "**This api is called from 3D-display app repeatedly**"
+      tags:
+        - "Contents"
+      deprecated: false
+      parameters:
+        - name: "playersId"
+          in: path
+          description: ""
+          required: true
+          schema: { type: string }
+          example: "1"
+      responses:
+        "200":
+          description: "Success"
+
+  "/3dvs/contents/movie/{movieId}":
+    parameters:
+      - name: "movieId"
+        in: path
+        description: ""
+        required: true
+        schema: { type: integer }
+        example: 1
+    put:
+      summary: "send a signal to play movie on 3D display"
+      description: ""
+      tags:
+        - "Contents"
+      deprecated: false
+      parameters:
+        - name: "playersId"
+          in: query
+          description: ""
+          required: true
+          schema: { type: string }
+          example: "1"
+      responses:
+        "201":
+          description: "Success"
+    get:
+      summary: "get movie streaming"
+      description: ""
+      tags:
+        - "Contents"
+      deprecated: false
+      responses:
+        "200":
+          description: "streaming"
+
+  "/3dvs/contents/call/{callId}":
+    parameters:
+      - name: "callId"
+        in: path
+        description: ""
+        required: true
+        schema: { type: string }
+        example: "1"
+    put:
+      summary: "send a signal to call on 3D display"
+      description: ""
+      tags:
+        - "Contents"
+      deprecated: false
+      parameters:
+        - name: "playersId"
+          in: query
+          description: ""
+          required: true
+          schema: { type: string }
+          example: "1"
+      responses:
+        "201":
+          description: "Success"
+    get:
+      summary: "get call"
+      description: ""
+      tags:
+        - "Contents"
+      deprecated: false
+      responses:
+        "200":
+          description: "join to zoom room"
+          
+
+components:
+  schemas:
+    SampleCommon:
+      type: string
+      format: email
+      description: "" #common
+      default: "sample" #common
+      nullable: false #common
+      example: "abcde" #common
+      deprecated: false #common
+    SampleInt:
+      type: integer
+      format: int32
+      multipleOf: 10 # multiple value
+      maximum: 100
+      exclusiveMaximum: false # include maximum or not
+      minimum: 0
+      exclusiveMinimum: false # include minimum or not
+    SampleString:
+      type: string
+      format: email
+      maxLength: 100
+      minLength: 0
+    SampleBoolean:
+      type: boolean
+    SampleObject:
+      type: object
+      properties:
+        name: { type: string }
+        date: { type: string, format: date }
+      additionalProperties: true
+      required:
+        - name
+      minProperties: 2
+      maxProperties: 2
+    SampleArray:
+      type: array
+      items: { type: string }
+      minItems: 0
+      maxItems: 5
+      uniqueItems: false
+    SampleEnum:
+      type: string
+      enum: ["red", "blue", "yellow"]
+  responses:
+    400-badrequest:
+      description: "sample error response"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              code: { type: string }
+              type: { type: string }
+              message: { type: string }
+              errors:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    field: { type: string }
+                    code: { type: string }
+  securitySchemes:
+    apikey_auth:
+      description: "Sample API key auth"
+      type: apiKey
+      in: header
+      name: "x-Api-key"

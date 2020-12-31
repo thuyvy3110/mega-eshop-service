@@ -1,0 +1,43 @@
+{
+  "extends": ["tslint:recommended", "dtslint"],
+  "rules": {
+      "max-line-length": {
+          "options": [120]
+      },
+      "await-promise": true,
+      "promise-function-async": true,
+      "ordered-imports": true,
+      "no-async-without-await": true,
+      "space-before-function-paren": true,
+      "no-floating-promises": true,
+      "no-var-requires": false,
+      "new-parens": true,
+      "no-arg": true,
+      "no-bitwise": true,
+      "no-conditional-assignment": true,
+      "no-consecutive-blank-lines": false,
+      "no-trailing-whitespace": true,
+      "no-irregular-whitespace": true,
+      "trailing-comma": true,
+      "new-line-before-return": false,
+      "indent": [true, "tabs", 2],
+      "quotemark": [true, "single", "avoid-template", "avoid-escape"],
+      "no-console": {
+        "severity": "warning",
+        "options": ["debug", "info", "time", "timeEnd", "trace"]
+      },
+      "semicolon": [true, "always"],
+      "unnecessary-else": true,
+      "variable-name": [true, "allow-snake-case"]
+  },
+  "jsRules": {
+      "max-line-length": {
+          "options": [120]
+      }
+  },
+  "linterOptions": {
+    "exclude": [
+      "./node_modules"
+    ]
+  }
+}

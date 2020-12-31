@@ -1,0 +1,36 @@
+{
+  "compilerOptions": {
+    "target": "es5",
+    "module": "commonjs",
+    "esModuleInterop": true,
+    "lib": [ "es5", "es6", "dom" ],
+    "strict": true,
+    "importHelpers": true,
+    "experimentalDecorators": true,
+    "allowSyntheticDefaultImports": true,
+    "emitDecoratorMetadata": true,
+    "strictPropertyInitialization": false,
+    "removeComments": true,
+    "sourceMap": true,
+    "outDir": "./build",
+    "rootDir": "./",
+    "typeRoots": [
+      "node_modules/@types"
+    ],
+    "baseUrl": ".",
+    "paths": {
+      "*":[
+        "node_modules/*",
+      ]
+    }
+  },
+  "include":  [
+    "src/**/*",
+    "./",
+  ],
+  "exclude": [
+    "node_modules",
+    "log",
+    "build"
+  ],
+}
