@@ -9,6 +9,7 @@ import { ProductImgs } from '../models/entities/ProductImgs';
 import { Products } from '../models/entities/Products';
 import { ProductImgsRepository } from '../repositories/ProductImgs.repository';
 import { ProductRepository } from '../repositories/Products.repository';
+import { getFileFromS3 } from '../utils/Storage.utils';
 import { BaseController } from './Base.controller';
 
 class ProductController extends BaseController<Products, ProductRepository> {
@@ -32,7 +33,7 @@ class ProductController extends BaseController<Products, ProductRepository> {
 				body('categoryId').notEmpty(),
 				body('companyName').notEmpty().isString().isLength({ max: 100 }),
 				body('price').notEmpty().isString().isLength({ max: 100 }),
-				body('url').notEmpty().isString().isLength({ max: 100 }),
+				body('url').notEmpty().isString().isLength({ max: 200 }),
 			],
 			(req: any, res: Response) => this.save(req, res)
 		);
@@ -43,7 +44,7 @@ class ProductController extends BaseController<Products, ProductRepository> {
 				body('categoryId').notEmpty(),
 				body('companyName').notEmpty().isString().isLength({ max: 100 }),
 				body('price').notEmpty().isString().isLength({ max: 100 }),
-				body('url').notEmpty().isString().isLength({ max: 100 }),
+				body('url').notEmpty().isString().isLength({ max: 200 }),
 			],
 			(req: any, res: Response) => this.save(req, res)
 		);
@@ -72,12 +73,41 @@ class ProductController extends BaseController<Products, ProductRepository> {
 		}
 	}
 
+	public async find(request: Request, response: Response) {
+		const clientId: number = await this.findClientId(request);
+		try {
+			let entities;
+			if(request.query?.campaignId && !_.isEmpty(request.query?.campaignId)) {
+				entities = await getRepository(this.entity).createQueryBuilder('product')
+				.innerJoinAndSelect('product.campaignProducts', 'campaignProduct')
+				.where('product.clientId = :clientId', { clientId })
+				.andWhere('campaignProduct.campaignId = :campaignId', {campaignId: +request.query?.campaignId})
+				.orderBy('product.updatedAt', 'DESC')
+				.getMany();
+			} else {
+				entities = await getRepository(this.entity).createQueryBuilder()
+					.where('client_id = :clientId', { clientId })
+					.orderBy('updated_at', 'DESC')
+					.getMany();
+			}
+			return response.status(200).json(entities);
+		} catch (error) {
+			console.log(error);
+			return response.status(500).json({ err_code: this.errCode.ERROR_RESPONSE })
+		}
+	}
+
 	async findOne(request: Request, response: Response) {
 		try {
 			console.log('FindOne params: ', request.params.id);
 			const record = await this.repository.findOneById(request.params.id, { relations: ['productImgs'] });
 			if (_.isEmpty(record)) {
-				return response.status(400).json({ status: 'error', err_code: this.errCode.ERROR_ENTRY_NOT_FOUND });
+				return response.status(500).json({ status: 'error', err_code: this.errCode.ERROR_ENTRY_NOT_FOUND });
+			}
+			if (request.query?.type == 'public' && record?.productImgs) {
+				for (const productImg of record.productImgs) {
+					productImg.img = await getFileFromS3(productImg.img);
+				}
 			}
 			return response.status(200).json(record);
 		} catch (error) {
@@ -92,7 +122,7 @@ class ProductController extends BaseController<Products, ProductRepository> {
 		const account = await this.findUsernameInRequest(request);
 		const errors = validationResult(request);
 		if (!errors.isEmpty()) {
-			return response.status(400).json({ errors: errors.array() });
+			return response.status(500).json({ err_code: this.errCode.ERROR_VALIDATION });
 		}
 		const data = request.body;
 		try {
@@ -105,7 +135,7 @@ class ProductController extends BaseController<Products, ProductRepository> {
 				// get more information to merge
 				record = await this.repository.findOneById(data.id, { relations: ['productImgs'] });
 				if (!record) {
-					return response.status(400).json({ status: 'error', err_code: this.errCode.ERROR_ENTRY_NOT_FOUND });
+					return response.status(500).json({ status: 'error', err_code: this.errCode.ERROR_ENTRY_NOT_FOUND });
 				}
 			}
 
@@ -157,7 +187,11 @@ class ProductController extends BaseController<Products, ProductRepository> {
 		if (req.files && req.files[field]) {
 			defaultValue = await this.upload(req, field, key);
 		}
-		record.img = defaultValue;
+		if(!_.isEmpty(defaultValue) && defaultValue !== 'undefined'){
+			record.img = defaultValue;
+		} else {
+			record.img = '';
+		}
 	}
 
 	bulkInsertByCsvFile = async (request: any, response: Response) => {
@@ -201,7 +235,7 @@ class ProductController extends BaseController<Products, ProductRepository> {
 
 	async delete(request: Request, response: Response) {
 		if (_.isEmpty(request.params.id)) {
-			return response.status(400).json({ status: 'error', err_code: this.errCode.ERROR_ENTRY_NOT_FOUND });
+			return response.status(500).json({ status: 'error', err_code: this.errCode.ERROR_ENTRY_NOT_FOUND });
 		}
 		try {
 			console.log('BaseController - delete: ' + request);

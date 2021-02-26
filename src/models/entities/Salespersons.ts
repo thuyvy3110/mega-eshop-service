@@ -6,7 +6,6 @@ import { Categories } from './Categories';
 import { Clients } from './Clients';
 import { SalespersonsAreas } from './SalespersonsAreas';
 import { StoreSalespersons } from './StoreSalespersons';
-import { VideoCalling } from './VideoCalling';
 
 @Index('salespersons_UNIQUE', ['name', 'clientId'], { unique: true })
 @Index('fk_salespersons_clients1_idx', ['clientId'], {})
@@ -63,7 +62,4 @@ export class SalePerson extends BaseModel {
 		(storeSalespersons) => storeSalespersons.salesperson
 	)
 	storeSalespersons: StoreSalespersons[];
-
-	@OneToMany(() => VideoCalling, (videoCalling) => videoCalling.salesperson)
-	videoCallings: VideoCalling[];
 }

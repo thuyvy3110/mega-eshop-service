@@ -20,6 +20,8 @@ import ScenarioController from './src/controllers/Scenario.controller';
 import StoreController from './src/controllers/Store.controller';
 import StoreSalespersonsController from './src/controllers/StoreSalesPerson.controller';
 import TabletAccountsController from './src/controllers/TabletAccounts.controller';
+import CustomerController from './src/controllers/Customer.controller';
+import CredentialController from './src/controllers/Credential.controller';
 
 dotenv.config();
 
@@ -67,7 +69,9 @@ function startApp () {
 			new SalespersonsController(),
 			new SaleAreaController(),
 			new StoreController(),
-			new LogController()
+			new LogController(),
+			new CustomerController(),
+			new CredentialController()
 		],
 		// Middlewares list of application
 		middleWares: [

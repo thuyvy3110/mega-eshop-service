@@ -31,6 +31,9 @@ export class Clients extends BaseModel {
 	@Column({ length: 100 })
 	description: string;
 
+	@Column()
+	headerImage: string;
+
 	@OneToMany(() => AdminUsers, (adminUsers) => adminUsers.client)
 	adminUsers: AdminUsers[];
 

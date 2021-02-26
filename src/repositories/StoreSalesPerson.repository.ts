@@ -1,34 +1,34 @@
-import { StoreSalespersons } from '../models/entities/StoreSalespersons';
+import { createQueryBuilder, getRepository, LessThan } from 'typeorm';
+
 import { SalePerson } from '../models/entities/Salespersons';
-import { BaseRepository } from './BaseRepository.repository';
-import { createQueryBuilder, LessThan } from 'typeorm';
 import { Stores } from '../models/entities/Stores';
-import { getRepository } from 'typeorm';
-import { StoreRepository } from './Store.repository'
-import { SalespersonRepository } from './SalesPerson.repository'
+import { StoreSalespersons } from '../models/entities/StoreSalespersons';
+import { BaseRepository } from './BaseRepository.repository';
+import { SalespersonRepository } from './SalesPerson.repository';
+import { StoreRepository } from './Store.repository';
 
 export class StoreSalespersonsRepository extends BaseRepository<StoreSalespersons> {
 
     storeRepository: StoreRepository;
     salesPersonRepository: SalespersonRepository;
 
-	constructor () {
-		super(StoreSalespersons);
-		this.storeRepository = new StoreRepository();
-		this.salesPersonRepository = new SalespersonRepository()
+    constructor() {
+        super(StoreSalespersons);
+        this.storeRepository = new StoreRepository();
+        this.salesPersonRepository = new SalespersonRepository()
     }
 
-    public async findByClientId (clientId: number) {
+    public async findByClientId(clientId: number) {
         const result: Array<StoreSalespersons> = [];
         await this.repository.createQueryBuilder('ssp')
             .innerJoinAndSelect('salespersons', 'sp', 'sp.id = ssp.salespersonId')
             .innerJoinAndSelect('stores', 's', 's.id = ssp.storeId')
-            .where(`s.client_id = :client_id`)
+            .where('s.client_id = :client_id')
             .setParameter('client_id', clientId)
             .orderBy('ssp.updatedAt', 'DESC')
             .getRawMany()
             .then(items => {
-                items.forEach( (item: any) => {
+                items.forEach((item: any) => {
                     const ssp = new StoreSalespersons();
                     ssp.createdAt = item.ssp_created_at;
                     ssp.updatedAt = item.ssp_updated_at;
@@ -49,11 +49,11 @@ export class StoreSalespersonsRepository extends BaseRepository<StoreSalesperson
                     ssp.salesperson = ssp1;
 
                     result.push(ssp);
-                })
+                });
             });
 
         let mapResult = new Map();
-        result.forEach( (r: any) => {
+        result.forEach((r: any) => {
             if (!mapResult.get(r.storeId)) {
                 r['salespersons'] = [];
                 mapResult.set(r.storeId, r);
@@ -65,18 +65,18 @@ export class StoreSalespersonsRepository extends BaseRepository<StoreSalesperson
         return Array.from(mapResult.values());
     }
 
-    private async getSalespersonIdByStoreSalesperson (storeId: number, clientId: number): Promise<Array<number>> {
+    private async getSalespersonIdByStoreSalesperson(storeId: number, clientId: number): Promise<Array<number>> {
         const salespersonId: Array<number> = [];
         await this.repository.createQueryBuilder('ssp')
-        .innerJoinAndSelect(StoreSalespersons, 'sp', 'sp.store_id = ssp.store_id')
-        .innerJoinAndSelect(Stores, 's', 's.id = ssp.storeId')
-        .where(`s.client_id = :client_id AND sp.store_id = ${ storeId }`)
-        .setParameter('client_id', clientId)
-        .orderBy('ssp.updatedAt', 'DESC')
-        .select('ssp.salespersonId')
-        .getMany().then(data => {
-            data.forEach((element: any) => salespersonId.push(element.salespersonId));
-        })
+            .innerJoinAndSelect(StoreSalespersons, 'sp', 'sp.store_id = ssp.store_id')
+            .innerJoinAndSelect(Stores, 's', 's.id = ssp.storeId')
+            .where(`s.client_id = :client_id AND sp.store_id = ${storeId}`)
+            .setParameter('client_id', clientId)
+            .orderBy('ssp.updatedAt', 'DESC')
+            .select('ssp.salespersonId')
+            .getMany().then(data => {
+                data.forEach((element: any) => salespersonId.push(element.salespersonId));
+            })
 
         if (salespersonId.length < 0)
             return []
@@ -84,14 +84,14 @@ export class StoreSalespersonsRepository extends BaseRepository<StoreSalesperson
         return salespersonId
     }
 
-    private async getSalespersonId (clientId: number): Promise<Array<object>> {
+    private async getSalespersonId(clientId: number): Promise<Array<object>> {
         const salesperson: Array<object> = [];
         await getRepository(SalePerson)
-                            .createQueryBuilder("salespersons")
-                            .where(`client_id = ${clientId}`)
-                            .getMany().then(data => {
-                                data.forEach((element: any) => salesperson.push(element));
-                            })
+            .createQueryBuilder("salespersons")
+            .where(`client_id = ${clientId}`)
+            .getMany().then(data => {
+                data.forEach((element: any) => salesperson.push(element));
+            })
 
         if (salesperson.length < 0)
             return []
@@ -104,9 +104,9 @@ export class StoreSalespersonsRepository extends BaseRepository<StoreSalesperson
         try {
             if (salespersonIdInStoreSalesperson.length > 0) {
                 return await getRepository(SalePerson)
-                                .createQueryBuilder("salespersons")
-                                .where(`salespersons.id IN (${salespersonIdInStoreSalesperson})`)
-                                .getMany();
+                    .createQueryBuilder("salespersons")
+                    .where(`salespersons.id IN (${salespersonIdInStoreSalesperson})`)
+                    .getMany();
             }
             else
                 return [];
@@ -122,11 +122,10 @@ export class StoreSalespersonsRepository extends BaseRepository<StoreSalesperson
         try {
             if (inActiveSalespersonId.length > 0) {
                 return await getRepository(SalePerson)
-                            .createQueryBuilder("salespersons")
-                            .where(`salespersons.id NOT IN (${inActiveSalespersonId}) AND salespersons.clientId == ${clientId}`)
-                            .getMany();
-            }
-            else if (salesperson.length > 0 && salesperson[0] !== undefined)
+                    .createQueryBuilder("salespersons")
+                    .where(`salespersons.id NOT IN (${inActiveSalespersonId}) AND salespersons.clientId = ${clientId}`)
+                    .getMany();
+            } else if (salesperson.length > 0 && salesperson[0] !== undefined)
                 return salesperson;
             else
                 return [];
@@ -140,7 +139,7 @@ export class StoreSalespersonsRepository extends BaseRepository<StoreSalesperson
         await createQueryBuilder()
             .delete()
             .from(StoreSalespersons)
-            .where("store_id = :storeId", {storeId: storeId})
+            .where("store_id = :storeId", { storeId: storeId })
             .execute();
         const rows = salesPersonId.map(sp => {
             const r = new StoreSalespersons();
@@ -153,7 +152,7 @@ export class StoreSalespersonsRepository extends BaseRepository<StoreSalesperson
         return await this.repository.save(rows);
     }
 
-    public async getDataByIdOfRowTable (rowId: number) {
+    public async getDataByIdOfRowTable(rowId: number) {
         const data = await this.repository.findOne(rowId);
         if (!data) {
             return {};
@@ -167,27 +166,34 @@ export class StoreSalespersonsRepository extends BaseRepository<StoreSalesperson
             where: {
                 storeId: data.storeId
             }
-        })
+        });
         const salesPersonIds = storeSalespersons.map(item => item.salespersonId);
-        const salesPersons = await this.salesPersonRepository.findByIds(salesPersonIds)
-        data.salesperson = salesPersons;
+        const salespersons = await this.salesPersonRepository.findByIds(salesPersonIds);
+        Object.assign(data, { salespersons });
 
         return data;
     }
 
+    public saveByStoreId(storeId: any, spIds: number[], account: string) {
+        spIds.map(async (spId: number) => {
+            const record = new StoreSalespersons();
+            record.storeId = storeId;
+            record.salespersonId = spId;
+            record.updatedBy = account;
+            record.createdBy = account;
+            await this.repository.save(record);
+        });
+    }
+
     public async findBySalePersonId(id: number) {
-	    return await this.repository.find({
+        return await this.repository.find({
             where: {
                 salespersonId: id
             }
         })
     }
 
-    public async deleteByStoreId (storeId: number) {
-        await createQueryBuilder()
-            .delete()
-            .from(StoreSalespersons)
-            .where(`store_id IN (${storeId})`)
-            .execute();
+    public async deleteByStoreId(storeId: any) {
+        return await this.repository.delete({ 'storeId': storeId });
     }
 }

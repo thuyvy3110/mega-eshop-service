@@ -1,4 +1,4 @@
-import { Column, Entity, Index, JoinColumn, ManyToOne, ManyToMany, OneToMany } from 'typeorm'
+import { Column, Entity, Index, JoinColumn, ManyToOne, ManyToMany, OneToMany, OneToOne } from 'typeorm'
 
 import { BaseModel } from '../Base.models';
 import { SalePerson } from './Salespersons';
@@ -18,12 +18,9 @@ export class StoreSalespersons extends BaseModel {
 	salespersonId: number;
 
 
-	@OneToMany(
-			() => SalePerson,
-			(salespersons) => salespersons.storeSalespersons
-	)
+	@OneToOne(() => SalePerson)
 	@JoinColumn([{name: 'salesperson_id', referencedColumnName: 'id'}])
-	salesperson: any;	// TODO fix entity definition, should be array
+	salesperson: SalePerson;
 
 	@ManyToOne(() => Stores, (stores) => stores.storeSalespersons, {
 		onDelete: 'NO ACTION',

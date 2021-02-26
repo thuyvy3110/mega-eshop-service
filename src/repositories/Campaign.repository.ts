@@ -18,7 +18,7 @@ export class CampaignRepository extends BaseRepository<Campaigns> {
 			.innerJoinAndSelect('campaigns.category', 'category')
 			.where('campaigns.client_id = :client_id', {client_id: clientId})
 			.andWhere('(campaigns.end_date < :base_date)', {base_date : baseDate})
-			.orderBy('campaigns.updatedAt', 'DESC')
+			.orderBy('campaigns.startDate', 'DESC')
 			.paginate();
 	}
 
@@ -29,7 +29,7 @@ export class CampaignRepository extends BaseRepository<Campaigns> {
 			.createQueryBuilder()
 			.where('client_id = :client_id', {client_id: clientId})
 			.andWhere('(end_date >= :base_date)', {base_date : baseDate})
-			.orderBy('updated_at', 'DESC')
+			.orderBy('start_date', 'DESC')
 			.getMany();
 	}
 

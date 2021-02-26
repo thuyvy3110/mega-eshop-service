@@ -54,6 +54,7 @@ class SalespersonsController extends BaseController<SalePerson, SalespersonRepos
 
 	async paginate(request: any, response: Response): Promise<Response> {
 		const clientId: number = await this.findClientId(request);
+		const pClientId: number = await this.findParentClientIdFirst(request);
 
 		try {
 			if (_.isEmpty(request.query)) {
@@ -65,12 +66,42 @@ class SalespersonsController extends BaseController<SalePerson, SalespersonRepos
 				.leftJoinAndSelect('salespersons.category', 'categories')
 				.leftJoinAndSelect('salespersons.salespersonsAreas', 'salespersonsAreas')
 				.leftJoinAndSelect('salespersonsAreas.saleArea', 'saleAreas')
-				.where('salespersons.clientId = :client_id', { client_id: clientId })
+				.where('salespersons.clientId IN (:clientId, :pClientId)', { clientId, pClientId })
 				.orderBy('salespersons.updatedAt', 'DESC')
 				.paginate();
 
 			if (!_.isEmpty(entities)) {
 				entities?.data.forEach((sp: SalePerson) => {
+					const saleAreas = sp.salespersonsAreas ? sp.salespersonsAreas.map(x => x.saleArea?.area) : [];
+					sp = Object.assign(sp, {
+						saleAreas, salespersonsAreas: undefined,
+						specialtyCategory: sp.category?.campaignCategoryName,
+						category: undefined
+					});
+				});
+			}
+			return response.status(200).json(entities);
+		} catch (error) {
+			console.log(error);
+			return response.status(500).json({ err_code: this.errCode.ERROR_RESPONSE });
+		}
+	}
+
+	async find(request: Request, response: Response) {
+		const clientId: number = await this.findClientId(request);
+		const pClientId: number = await this.findParentClientIdFirst(request);
+		try {
+			console.log('BaseController - find: ' + request);
+			const entities = await getRepository(this.entity)
+				.createQueryBuilder('salespersons')
+				.leftJoinAndSelect('salespersons.category', 'categories')
+				.leftJoinAndSelect('salespersons.salespersonsAreas', 'salespersonsAreas')
+				.leftJoinAndSelect('salespersonsAreas.saleArea', 'saleAreas')
+				.where('salespersons.clientId IN (:clientId, :pClientId)', { clientId, pClientId })
+				.orderBy('salespersons.updatedAt', 'DESC')
+				.getMany();
+			if (!_.isEmpty(entities)) {
+				entities.forEach((sp: SalePerson) => {
 					const saleAreas = sp.salespersonsAreas ? sp.salespersonsAreas.map(x => x.saleArea?.area) : [];
 					sp = Object.assign(sp, {
 						saleAreas, salespersonsAreas: undefined,
@@ -95,7 +126,7 @@ class SalespersonsController extends BaseController<SalePerson, SalespersonRepos
 				Object.assign(record, { saleAreas, salespersonsAreas: undefined });
 				return response.status(200).json(record);
 			}
-			return response.status(400).json({ status: 'error', err_code: this.errCode.ERROR_ENTRY_NOT_FOUND });
+			return response.status(500).json({ status: 'error', err_code: this.errCode.ERROR_ENTRY_NOT_FOUND });
 		} catch (error) {
 			console.log(error);
 			return response.status(500).json({ err_code: this.errCode.ERROR_RESPONSE });
@@ -108,12 +139,12 @@ class SalespersonsController extends BaseController<SalePerson, SalespersonRepos
 		const account = await this.findUsernameInRequest(request);
 		const errors = validationResult(request);
 		if (!errors.isEmpty()) {
-			return response.status(400).json({ errors: errors.array() });
+			return response.status(500).json({ err_code: this.errCode.ERROR_VALIDATION });
 		}
 		const data = request.body;
 		// validate evaluation range
-		if (!data.evaluation || +data.evaluation < 0 || +data.evaluation > 5) {
-			return response.status(500).json({ status: 'evaluation invalid', err_code: this.errCode.ERROR_INVALID_AGRUMENT });
+		if (+data.evaluation < 0 || +data.evaluation > 5) {
+			return response.status(500).json({ status: 'evaluation invalid', err_code: this.errCode.ERROR_VALIDATION });
 		}
 		try {
 			const isNew = Number(data.id) > 0 ? false : true;
@@ -154,14 +185,14 @@ class SalespersonsController extends BaseController<SalePerson, SalespersonRepos
 
 	async delete(request: Request, response: Response) {
 		if (_.isEmpty(request.params.id)) {
-			return response.status(400).json({ status: 'error', err_code: this.errCode.ERROR_ENTRY_NOT_FOUND });
+			return response.status(500).json({ status: 'error', err_code: this.errCode.ERROR_ENTRY_NOT_FOUND });
 		}
 		try {
 			await this.salespersonsAreasRepository.deleteBySalespersonId(+request.params.id);
 			await this.repository.delete(request.params.id);
 			return response.status(200).json({ message: 'Record deleted' });
 		} catch (error) {
-			console.log(error)
+			console.log(error);
 			return response.status(500).json({ err_code: this.errCode.ERROR_RESPONSE })
 		}
 	}

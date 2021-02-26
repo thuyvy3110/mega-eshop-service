@@ -28,7 +28,7 @@ class CategoryController extends BaseController<Categories, CategoriesRepository
 		const parentClientId: number = await this.findParentClientIdFirst(request);
 		console.log('FindOne params type: ', request.params.categoryType);
 		if (_.isEmpty(request.params.categoryType)) {
-			return response.status(400).json({ status: 'empty category type', err_code: this.errCode.ERROR_ENTRY_NOT_FOUND });
+			return response.status(500).json({ status: 'empty category type', err_code: this.errCode.ERROR_ENTRY_NOT_FOUND });
 		}
 		try {
 			let categories;
@@ -44,7 +44,7 @@ class CategoryController extends BaseController<Categories, CategoriesRepository
 					.getMany();
 					break;
 				default:
-					return response.status(400).json({ status: 'category type wrong', err_code: this.errCode.ERROR_ENTRY_NOT_FOUND });
+					return response.status(500).json({ status: 'category type wrong', err_code: this.errCode.ERROR_ENTRY_NOT_FOUND });
 			}
 			return response.status(200).json({ categories });
 		} catch (error) {

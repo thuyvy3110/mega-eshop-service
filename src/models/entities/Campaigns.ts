@@ -40,6 +40,9 @@ export class Campaigns extends BaseModel {
 	@Column('text', { name: 'content', nullable: true, comment: 'å†…å®¹' })
 	content: string;
 
+	@Column({ length: 200 })
+	url: string;
+
 	@Column({ length: 50, })
 	status: string;
 

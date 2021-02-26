@@ -2,7 +2,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne, OneToMany, OneToOne, Prim
 import {BaseModel} from '../Base.models';
 import { Campaigns } from './Campaigns';
 import { Stores } from './Stores';
-import { VideoCalling } from './VideoCalling'
 
 @Index('campaign_stores_UNIQUE', ['campaignId', 'storeId'], { unique: true })
 @Index('fk_campaign_stores_stores1_idx', ['storeId'], {})
@@ -28,7 +27,4 @@ export class CampaignStores extends BaseModel{
 	})
 	@JoinColumn([{ name: 'store_id', referencedColumnName: 'id' }])
 	store: Stores;
-
-	@OneToMany(() => VideoCalling, (videoCalling) => videoCalling.campaignStore)
-	videoCallings: VideoCalling[];
 }

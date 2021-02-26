@@ -1,0 +1,29 @@
+# Do not change version. This is the version of aws buildspec, not the version of your buldspec file.
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 12
+    commands:
+      - echo Installing Yarn...
+      - npm i yarn
+  pre_build:
+    commands:
+      - echo Installing source yarn dependencies...
+      - yarn install
+      - test -z ${build_env} || (cat .env.${build_env} | envsubst '$dbhost $dbname $dbuser $dbpassword $redis_endpoint $redis_port' > .env)
+  build:
+    commands:
+      - echo Build started on `date`
+      - yarn build
+  post_build:
+    commands:
+      - echo Build completed on `date`
+artifacts:
+  files:
+    - build/**/*
+    - appspec.yml
+    - .env
+    - scripts/**/*
+    - node_modules/**/*

@@ -63,6 +63,7 @@ class CampaignController extends BaseController<Campaigns, CampaignRepository> {
                     .custom((value, { req }) => value > req.body.startDate),
                 body('productIds').notEmpty(),
                 body('storeIds'),
+                body('url').notEmpty().isString().isLength({ max: 200 }),
             ],
             (req: any, res: Response) => this.save(req, res)
         );
@@ -79,6 +80,7 @@ class CampaignController extends BaseController<Campaigns, CampaignRepository> {
                     .isString()
                     .custom((value, { req }) => value > req.body.startDate),
                 body('productIds').notEmpty(),
+                body('url').notEmpty().isString().isLength({ max: 200 }),
             ],
             (req: any, res: Response) => this.save(req, res)
         );
@@ -105,7 +107,7 @@ class CampaignController extends BaseController<Campaigns, CampaignRepository> {
         }
 
         if (!errors.isEmpty()) {
-            return response.status(400).json({ errors: errors.array() });
+            return response.status(500).json({ err_code: this.errCode.ERROR_VALIDATION });
         }
 
         if (storeIds) {
@@ -131,6 +133,7 @@ class CampaignController extends BaseController<Campaigns, CampaignRepository> {
             record.categoryId = request.body.categoryId;
             record.clientId = clientId;
             record.content = request.body.content;
+            record.url = request.body.url;
             record.status = request.body.status || campaignStatus.inactive;
             record.startDate = request.body.startDate;
             record.endDate = request.body.endDate;
@@ -138,7 +141,7 @@ class CampaignController extends BaseController<Campaigns, CampaignRepository> {
             record.periods = request.body.periods;
             record.dueDate = request.body.dueDate;
 
-            const campaign = await this.repository.upsert(record)
+            const campaign = await this.repository.upsert(record);
             if (!_.isEmpty(productIds)) {
                 await this.campaignProductRepository.delete(campaign.id);
                 await this.campaignProductRepository.save(campaign.id, productIds, account);
@@ -152,7 +155,7 @@ class CampaignController extends BaseController<Campaigns, CampaignRepository> {
             await this.uploadHandler(campaign, request, 'image3', 'campaign_' + campaign.id + '_image3', request.body.image3);
             await this.uploadHandler(campaign, request, 'image4', 'campaign_' + campaign.id + '_image4', request.body.image4);
             await this.uploadHandler(campaign, request, 'image5', 'campaign_' + campaign.id + '_image5', request.body.image5);
-            await this.repository.upsert(campaign)
+            await this.repository.upsert(campaign);
 
             return response.status(200).json({status: 'success', message: 'Success'});
         } catch(error) {
@@ -186,7 +189,7 @@ class CampaignController extends BaseController<Campaigns, CampaignRepository> {
             const campaignsActive = await this.repository.getStatusActiveList(clientId)
             return response.status(200).json({types: 'all', campaignsActive, campaignsInactive});
         } catch(error) {
-            console.log(error)
+            console.log(error);
             return response.status(500).json({err_code: this.errCode.ERROR_RESPONSE});
         }
     }
@@ -221,7 +224,7 @@ class CampaignController extends BaseController<Campaigns, CampaignRepository> {
     updateStatus = async (request: Request, response: Response) => {
         const errors = validationResult(request);
         if (!errors.isEmpty()) {
-            return response.status(200).json({ errors: errors.array() });
+            return response.status(500).json({ err_code: this.errCode.ERROR_VALIDATION });
         }
 
         const id = request.body.id;
@@ -229,9 +232,9 @@ class CampaignController extends BaseController<Campaigns, CampaignRepository> {
         const campaign = await this.repository.findOneById(id);
         if(!_.isEmpty(campaign)){
             try {
-                await this.repository.updateStatus({ id, status })
-                if (status === '0') {
-                    await this.campaignStoreRepository.delete(id)
+                await this.repository.updateStatus({ id, status });
+                if (status === campaignStatus.inactive) {
+                    await this.campaignStoreRepository.delete(id);
                 }
                 return response.status(200).json({status: 'success', message: 'Success'});
             } catch(error) {
@@ -239,6 +242,7 @@ class CampaignController extends BaseController<Campaigns, CampaignRepository> {
                 return response.status(500).json({err_code: this.errCode.ERROR_RESPONSE});
             }
         }
+
         return response.status(400).json({message: 'Bad Request'});
     }
 

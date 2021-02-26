@@ -45,4 +45,12 @@ export class SalespersonRepository extends BaseRepository<SalePerson> {
     public async findByAccount(account: string) {
         return this.repository.findOne({ account: account })
     }
+
+    public async getSalespersonByClientId(clientId: number) {
+        return this.repository
+            .createQueryBuilder('salespersons')
+            .where('salespersons.client_id = :client_id ')
+            .setParameter('client_id', clientId)
+            .getMany()
+    }
 }

@@ -151,14 +151,17 @@ export abstract class BaseController<T extends BaseModel, R extends BaseReposito
     }
 
     public async findParentClientIdFirst(request: Request) {
-        const client: any = await this.findClientObject(request)
-        return client.parentClientId == 0 ? client.id : client.parentClientId;
+        const client: any = await this.findClientObject(request);
+        if(client) {
+            return client.parentClientId == 0 ? client.id : client.parentClientId;
+        }
+        return -1;
     }
 
     public async findClientObject(request: Request) {
-        const account = await this.findUsernameInRequest(request)
-        const poolName: any = await this.findUserPoolName(request)
-        return this.accountRepository.getClientObject(account, poolName)
+        const account = await this.findUsernameInRequest(request);
+        const poolName: any = await this.findUserPoolName(request);
+        return this.accountRepository.getClientObject(account, poolName);
     }
 
     public async findSalePersonByAccount(account: string) {

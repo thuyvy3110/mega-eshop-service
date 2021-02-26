@@ -1,15 +1,16 @@
 import { Request, Response } from 'express';
 import _ from 'lodash';
 import { getRepository } from 'typeorm';
+
+import { ScenarioInitialMovies } from '../models/entities/ScenarioInitialMovies';
 import { Scenarios } from '../models/entities/Scenarios';
+import { ScenarioTrees } from '../models/entities/ScenarioTrees';
 import { CampaignRepository } from '../repositories/Campaign.repository';
 import { CategoriesRepository } from '../repositories/Categories.repository';
 import { ScenarioRepository } from '../repositories/Scenario.repository';
+import { ScenarioInitialMoviesRepository } from '../repositories/ScenarioInitialMovies.repository';
+import { ScenarioTreesRepository } from '../repositories/ScenarioTrees.repository';
 import { BaseController } from './Base.controller';
-import { ScenarioTreesRepository } from '../repositories/ScenarioTrees.repository'
-import { ScenarioTrees } from '../models/entities/ScenarioTrees'
-import { ScenarioInitialMovies } from '../models/entities/ScenarioInitialMovies'
-import { ScenarioInitialMoviesRepository } from '../repositories/ScenarioInitialMovies.repository'
 
 class ScenarioController extends BaseController<Scenarios, ScenarioRepository> {
 
@@ -18,7 +19,7 @@ class ScenarioController extends BaseController<Scenarios, ScenarioRepository> {
 	private scenarioTreesRepository: ScenarioTreesRepository;
 	private scenarioInitialMovieRepository: ScenarioInitialMoviesRepository;
 
-	constructor () {
+	constructor() {
 		super(Scenarios, '/vs/scenario');
 		this.categoriesRepository = new CategoriesRepository();
 		this.campaignRepository = new CampaignRepository();
@@ -26,19 +27,21 @@ class ScenarioController extends BaseController<Scenarios, ScenarioRepository> {
 		this.scenarioInitialMovieRepository = new ScenarioInitialMoviesRepository();
 	}
 
-	initRepository () {
+	initRepository() {
 		return new ScenarioRepository();
 	}
 
-	customRoutes () {
+	customRoutes() {
 		this.router.get(this.path + '/categories', (req: Request, res: Response) => this.getAllCategories(req, res));
 		this.router.get(this.path + '/:clientId/list', (req: Request, res: Response) => this.getAll(req, res));
 		this.router.post(this.path + '/:id(\\d+)/tree', (req: Request, res: Response) => this.updateTreeNode(req, res));
-		this.router.post(this.path + '/:id(\\d+)/initial', (req: Request, res: Response) => this.updateInitialMovie(req, res));
-		this.router.delete(this.path + '/:id(\\d+)/tree/:nodeId(\\d+)', (req: Request, res: Response) => this.deleteTreeNode(req, res));
+		this.router.post(this.path + '/:id(\\d+)/initial',
+			(req: Request, res: Response) => this.updateInitialMovie(req, res));
+		this.router.delete(this.path + '/:id(\\d+)/tree/:nodeId(\\d+)',
+			(req: Request, res: Response) => this.deleteTreeNode(req, res));
 	}
 
-	async getAll (request: Request, response: Response): Promise<Response> {
+	async getAll(request: Request, response: Response): Promise<Response> {
 		const clientId: number = await this.findClientId(request);
 
 		try {
@@ -49,9 +52,9 @@ class ScenarioController extends BaseController<Scenarios, ScenarioRepository> {
 				.where('client_id = :client_id', { client_id: clientId })
 				.orderBy('id', 'DESC')
 				.paginate();
-			let parsedEntities = [];
+			const parsedEntities = [];
 			if (entities) {
-				for(let i = 0; i < entities.data.length; i++) {
+				for (let i = 0; i < entities.data.length; i++) {
 					const entity = await this.resolveCampaignCategory(entities.data[i]);
 					parsedEntities.push(entity);
 				}
@@ -62,7 +65,6 @@ class ScenarioController extends BaseController<Scenarios, ScenarioRepository> {
 			console.log(error);
 			return response.status(500).json({ err_code: this.errCode.ERROR_RESPONSE });
 		}
-		return super.paginate(request, response);
 	}
 
 	async resolveCampaignCategory(entity: any) {
@@ -103,7 +105,7 @@ class ScenarioController extends BaseController<Scenarios, ScenarioRepository> {
 			const initialNode = await this.scenarioInitialMovieRepository
 				.repository
 				.createQueryBuilder()
-				.where('scenario_id = :sc', {sc: request.params.id})
+				.where('scenario_id = :sc', { sc: request.params.id })
 				.getOne();
 			if (initialNode) {
 				record.scenarioInitialMovies = initialNode;
@@ -118,7 +120,7 @@ class ScenarioController extends BaseController<Scenarios, ScenarioRepository> {
 		}
 	}
 
-	public async create (request: Request, response: Response) {
+	public async create(request: Request, response: Response) {
 		const account = await this.findUsernameInRequest(request);
 		/**
 		 * When created new Scenario, a new record of Initial Movie will created.
@@ -160,7 +162,7 @@ class ScenarioController extends BaseController<Scenarios, ScenarioRepository> {
 		}
 	}
 
-	public async update (request: Request, response: Response) {
+	public async update(request: Request, response: Response) {
 		const account = await this.findUsernameInRequest(request);
 		const record = await this.repository.findOneById(request.params.id);
 		if (!record) {
@@ -176,7 +178,7 @@ class ScenarioController extends BaseController<Scenarios, ScenarioRepository> {
 			return response.status(200).json({ message: 'Record Updated' });
 		} catch (error) {
 			console.log(error);
-			return response.status(500).json({ err_code: this.errCode.ERROR_RESPONSE  });
+			return response.status(500).json({ err_code: this.errCode.ERROR_RESPONSE });
 		}
 	}
 
@@ -184,19 +186,19 @@ class ScenarioController extends BaseController<Scenarios, ScenarioRepository> {
 		try {
 			const account = await this.findUsernameInRequest(req);
 			const scenario = await this.repository.findOneById(req.params.id);
-			if(_.isEmpty(scenario)){
+			if (_.isEmpty(scenario)) {
 				return res.status(404).json({ message: 'Bad Request' });
 			}
-			const isNew = req.body.nodeId  !== "0" ? false : true;
+			const isNew = req.body.nodeId !== "0" ? false : true;
 			let node: ScenarioTrees;
-			if(isNew) {
+			if (isNew) {
 				node = new ScenarioTrees();
 				node.createdBy = account;
 				node.scenarioId = +req.params.id;
 			} else {
 				//@ts-ignore
 				node = await this.scenarioTreesRepository.findOneById(req.body.nodeId);
-				if(!node){
+				if (!node) {
 					return res.status(404).json({ message: 'Bad Request' });
 				}
 			}
@@ -251,11 +253,11 @@ class ScenarioController extends BaseController<Scenarios, ScenarioRepository> {
 		try {
 			const account = await this.findUsernameInRequest(req);
 			const scenario = await this.repository.findOneById(req.params.id);
-			if(_.isEmpty(scenario)){
+			if (_.isEmpty(scenario)) {
 				return res.status(404).json({ message: 'Scenario not found' });
 			}
 			const node = await this.scenarioTreesRepository.findOneById(req.params.nodeId);
-			if(!node){
+			if (!node) {
 				return res.status(404).json({ message: 'Node not found' });
 			}
 			await this.scenarioTreesRepository.deleteTreeNode(node);
@@ -279,7 +281,7 @@ class ScenarioController extends BaseController<Scenarios, ScenarioRepository> {
 			const initialNode = await this.scenarioInitialMovieRepository
 				.repository
 				.createQueryBuilder()
-				.where('scenario_id = :sc', {sc: scenario.id})
+				.where('scenario_id = :sc', { sc: scenario.id })
 				.getOne();
 			if (!initialNode) {
 				return res.status(404).json({ message: 'Initial Node not found' });
@@ -293,7 +295,7 @@ class ScenarioController extends BaseController<Scenarios, ScenarioRepository> {
 			if (req.body.movie_1st) {
 				initialNode.movie_1st = req.body.movie_1st;
 			} else {
-				const uploadResult = await this.upload(req, 'movie_1st', 'scenario_initial_movie_1st_' + initialNode.id );
+				const uploadResult = await this.upload(req, 'movie_1st', 'scenario_initial_movie_1st_' + initialNode.id);
 				initialNode.movie_1st = uploadResult;
 			}
 			if (req.body.movie_2nd) {
@@ -314,7 +316,7 @@ class ScenarioController extends BaseController<Scenarios, ScenarioRepository> {
 		}
 	}
 
-	public async list (request: Request, response: Response) {
+	public async list(request: Request, response: Response) {
 		try {
 			console.log('ScenarioController - list: ' + request);
 			const record = await this.repository.find();
@@ -325,7 +327,7 @@ class ScenarioController extends BaseController<Scenarios, ScenarioRepository> {
 		}
 	}
 
-	public async delete (request: Request, response: Response) {
+	public async delete(request: Request, response: Response) {
 		try {
 			console.log('StoreSalespersonsController - delete: ' + request)
 			request.params.id

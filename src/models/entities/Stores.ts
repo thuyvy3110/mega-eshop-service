@@ -29,18 +29,6 @@ export class Stores extends BaseModel {
 	@Column()
 	memo: string;
 
-	@OneToMany(() => CampaignStores, (campaignStores) => campaignStores.store)
-	campaignStores: CampaignStores[];
-
-	@OneToMany(() => DisplayAccounts, (displayAccounts) => displayAccounts.store)
-	displayAccounts: DisplayAccounts[];
-
-	@OneToMany(
-		() => StoreSalespersons,
-		(storeSalespersons) => storeSalespersons.store
-	)
-	storeSalespersons: StoreSalespersons[];
-
 	@ManyToOne(() => Clients, (clients) => clients.stores, {
 		onDelete: 'NO ACTION',
 		onUpdate: 'NO ACTION',
@@ -48,6 +36,34 @@ export class Stores extends BaseModel {
 	@JoinColumn([{ name: 'client_id', referencedColumnName: 'id' }])
 	client: Clients;
 
-	@OneToMany(() => TabletAccounts, (tabletAccounts) => tabletAccounts.store)
+	@OneToMany(() => CampaignStores, (campaignStores) => campaignStores.store, {
+		onDelete: 'NO ACTION',
+		onUpdate: 'NO ACTION',
+	})
+	@JoinColumn([{ name: 'id', referencedColumnName: 'store_id' }])
+	campaignStores: CampaignStores[];
+
+	@OneToMany(
+		() => StoreSalespersons,
+		(storeSalespersons) => storeSalespersons.store, {
+		cascade: true,
+		onDelete: 'CASCADE',
+		onUpdate: 'NO ACTION',
+	})
+	@JoinColumn([{ name: 'id', referencedColumnName: 'store_id' }])
+	storeSalespersons: StoreSalespersons[];
+
+	@OneToMany(() => TabletAccounts, (tabletAccounts) => tabletAccounts.store, {
+		cascade: true,
+		onDelete: 'CASCADE',
+		onUpdate: 'NO ACTION',
+	})
 	tabletAccounts: TabletAccounts[];
+
+	@OneToMany(() => DisplayAccounts, (displayAccounts) => displayAccounts.store, {
+		cascade: true,
+		onDelete: 'CASCADE',
+		onUpdate: 'NO ACTION',
+	})
+	displayAccounts: DisplayAccounts[];
 }
